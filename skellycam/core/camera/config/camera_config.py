@@ -215,6 +215,7 @@ class CameraConfig(BaseModel):
         self.exposure_mode = settable_parameters.exposure_mode
         self.exposure = settable_parameters.exposure
         self.resolution = settable_parameters.resolution
+        self.framerate = settable_parameters.framerate
         self.rotation = settable_parameters.rotation
 
     def get_setting_differences(self, other: "CameraConfig") -> list[ParameterDifferencesModel]:

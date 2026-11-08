@@ -59,7 +59,9 @@ def apply_camera_configuration(cv2_vid_capture: cv2.VideoCapture,
 
     should_apply_exposure = initial_config or prior_config.exposure_mode != config.exposure_mode or prior_config.exposure != config.exposure
     should_apply_resolution = initial_config or prior_config.resolution != config.resolution
-    should_apply_framerate = False  # framerate application is disabled
+    should_apply_framerate = (initial_config or should_apply_resolution or
+                              prior_config.framerate != config.framerate or
+                              prior_config.capture_fourcc != config.capture_fourcc)
     should_apply_capture_fourcc = initial_config or prior_config.capture_fourcc != config.capture_fourcc
 
     try:
@@ -75,14 +77,16 @@ def apply_camera_configuration(cv2_vid_capture: cv2.VideoCapture,
             cv2_vid_capture.set(cv2.CAP_PROP_FRAME_WIDTH, config.resolution.width)
             cv2_vid_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, config.resolution.height)
 
-        if should_apply_framerate:
-            if config.framerate > 0:
-                cv2_vid_capture.set(cv2.CAP_PROP_FPS, config.framerate)
-
         if should_apply_capture_fourcc:
             cv2_vid_capture.set(
                 cv2.CAP_PROP_FOURCC, cv2.VideoWriter.fourcc(*config.capture_fourcc)
             )
+
+        # Format/resolution changes can reset the device's frame interval.
+        # Non-positive values leave the current device-selected rate untouched.
+        if should_apply_framerate and config.framerate > 0:
+            if not cv2_vid_capture.set(cv2.CAP_PROP_FPS, config.framerate):
+                logger.warning(f"Camera {config.camera_index}: device rejected requested FPS {config.framerate}")
 
         extracted_config = extract_config_from_cv2_capture(cv2_capture=cv2_vid_capture,
                                                            camera_index=config.camera_index,
